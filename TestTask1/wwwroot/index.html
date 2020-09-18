@@ -1,0 +1,159 @@
+﻿<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8" />
+    <title>TestTask</title>
+</head>
+<body>
+    <div id="userInfo" style="display:none;">
+        <p>Вы вошли как: <span id="userName"></span></p>
+        <input type="button" value="Выйти" id="logOut" />
+        <input type="submit" id="getDataByLogin" value="Список файлов" />
+        <p>Ваши файлы: <span id="userFiles"></span></p>
+        <label>Добавить файл</label><br />
+        <input type="text" id="newFile" /> <br /><br />
+        <input type="submit" id="addFile" value="Добавить" />
+
+    </div>
+    <div id="loginForm">
+        <h3>Вход на сайт</h3>
+        <label>Введите email</label><br />
+        <input type="email" id="emailLogin" /> <br /><br />
+        <label>Введите пароль</label><br />
+        <input type="password" id="passwordLogin" /><br /><br />
+        <label>Введите имя</label><br />
+        <input type="text" id="newName" /><br /><br />
+        <input type="submit" id="submitLogin" value="Войти" />
+        <input type="submit" id="registration" value="Зарегистрироваться" />
+    </div>
+
+    <script>
+        var tokenKey = "accessToken";
+
+        document.getElementById("submitLogin").addEventListener("click", e => {
+
+            e.preventDefault();
+            getTokenAsync();
+        });
+
+        document.getElementById("logOut").addEventListener("click", e => {
+
+            e.preventDefault();
+            document.getElementById("userName").innerText = "";
+            document.getElementById("userInfo").style.display = "none";
+            document.getElementById("loginForm").style.display = "block";
+            sessionStorage.removeItem(tokenKey);
+        });
+
+        document.getElementById("getDataByLogin").addEventListener("click", e => {
+
+            e.preventDefault();
+            getData("/api/values/getlogin");
+        });
+
+        document.getElementById("registration").addEventListener("click", e => {
+
+            e.preventDefault();
+            register();
+        });
+
+        document.getElementById("addFile").addEventListener("click", e => {
+
+            e.preventDefault();
+            addFile();
+        });
+
+
+        async function getTokenAsync() {
+
+            const formData = new FormData();
+            formData.append("grant_type", "password");
+            formData.append("username", document.getElementById("emailLogin").value);
+            formData.append("password", document.getElementById("passwordLogin").value);
+
+            const response = await fetch("/token", {
+                method: "POST",
+                headers: { "Accept": "application/json" },
+                body: formData
+            });
+            const data = await response.json();
+
+            if (response.ok === true) {
+
+                document.getElementById("userName").innerText = data.username;
+                document.getElementById("userInfo").style.display = "block";
+                document.getElementById("loginForm").style.display = "none";
+                sessionStorage.setItem(tokenKey, data.access_token);
+                console.log(data.access_token);
+            }
+            else {
+                alert(data.errorText);
+            }
+        };
+
+        async function getData(url) {
+            const token = sessionStorage.getItem(tokenKey);
+
+            const response = await fetch(url, {
+                method: "GET",
+                headers: {
+                    "Accept": "application/json",
+                    "Authorization": "Bearer " + token  
+                }
+            });
+            if (response.ok === true) {
+
+                const data = await response.json();
+                const formData = new FormData();
+                formData.append("email", data);
+                const response1 = await fetch("/getFiles", {
+                    method: "POST",
+                    headers: { "Accept": "application/json" },
+                    body: formData
+                });
+                const data1 = await response1.json();
+
+                if (response1.ok === true) {
+                    document.getElementById("userFiles").innerText = data1;
+                }
+            }
+            else
+                console.log("Status: ", response.status);
+        };
+
+        async function register() {
+
+            const formData = new FormData();
+            formData.append("grant_type", "password");
+            formData.append("email", document.getElementById("emailLogin").value);
+            formData.append("password", document.getElementById("passwordLogin").value);
+            formData.append("name", document.getElementById("newName").value);
+
+            const response = await fetch("/registration", {
+                method: "POST",
+                headers: { "Accept": "application/json" },
+                body: formData
+            });
+
+            const data = await response.json();
+            alert(data);
+        };
+
+        async function addFile() {
+            const formData = new FormData();
+            formData.append("grant_type", "password");
+            formData.append("email", document.getElementById("emailLogin").value);
+            formData.append("path", document.getElementById("newFile").value);
+
+            const response = await fetch("/addFiles", {
+                method: "POST",
+                headers: { "Accept": "application/json" },
+                body: formData
+            });
+
+            const data = await response.json();
+            alert(data);
+        }
+    </script>
+</body>
+</html>
